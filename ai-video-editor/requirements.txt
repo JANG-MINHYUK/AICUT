@@ -3,10 +3,10 @@ flask-cors==4.0.0
 git+https://github.com/openai/whisper.git
 torch==2.7.0
 torchvision==0.22.0
-numpy>=1.26.0
+numpy<2.0
 moviepy==1.0.3
 ffmpeg-python==0.2.0
 python-dotenv==1.0.0
 gunicorn==21.2.0
 opencv-python==4.8.0.74
-scipy>=1.15.0 
+scipy>=1.15.0
