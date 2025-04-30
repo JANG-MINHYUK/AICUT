@@ -1,32 +1,21 @@
 import React from 'react';
-import ReactPlayer from 'react-player';
-import styled from 'styled-components';
 
-const PlayerContainer = styled.div`
-  margin: 1rem 0;
-  background-color: #000;
-  border-radius: 4px;
-  overflow: hidden;
-`;
+type VideoPlayerProps = {
+  videoUrl: string;
+};
 
-interface VideoPlayerProps {
-  file: File;
-}
-
-const VideoPlayer: React.FC<VideoPlayerProps> = ({ file }) => {
-  const videoUrl = URL.createObjectURL(file);
+const VideoPlayer: React.FC<VideoPlayerProps> = ({ videoUrl }) => {
+  if (!videoUrl) return null;
 
   return (
-    <PlayerContainer>
-      <ReactPlayer
-        url={videoUrl}
+    <div className="w-full max-w-3xl mx-auto mt-6">
+      <video
+        src={videoUrl}
         controls
-        width="100%"
-        height="auto"
-        style={{ aspectRatio: '16/9' }}
+        className="w-full rounded-lg shadow-lg"
       />
-    </PlayerContainer>
+    </div>
   );
 };
 
-export default VideoPlayer; 
+export default VideoPlayer;

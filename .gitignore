@@ -1,0 +1,28 @@
+# Node.js dependencies
+node_modules/
+
+# Python cache files
+__pycache__/
+*.pyc
+
+# Environment files
+.env
+
+# Build outputs
+dist/
+
+# Logs
+*.log
+
+# Uploads and processed files
+uploads/
+processed/
+subtitles/
+
+# IDE specific files
+.vscode/
+.idea/
+
+# OS generated files
+.DS_Store
+Thumbs.db
