@@ -12,6 +12,8 @@ AUDIO_FOLDER = os.path.join(UPLOAD_FOLDER, 'audio')
 PROCESSED_FOLDER = os.path.join(UPLOAD_FOLDER, 'processed')
 SUBTITLES_FOLDER = os.path.join(UPLOAD_FOLDER, 'subtitles')
 
+ALLOWED_EXTENSIONS = {'mp4', 'mov', 'avi', 'mkv'}
+
 app = Flask(__name__)
 
 # 설정은 app 객체 생성 후에 진행해야 합니다
@@ -63,7 +65,7 @@ def upload_file():
             processed_filename = os.path.basename(processed_video)
             subtitles_filename = os.path.basename(subtitles_path)
 
-            base_url = request.host_url.replace("http://", "https://").rstrip('/')
+            base_url = request.host_url.rstrip('/')
 
             return jsonify({
                 'message': '파일 처리 완료',
@@ -90,10 +92,17 @@ def process_video():
     video_path = os.path.join(app.config['UPLOAD_FOLDER'], secure_filename(video.filename))
     video.save(video_path)
 
-    # Process the video based on the mode
-    processed_video_path = video_path  # Placeholder for actual processing logic
+    # Placeholder for actual processing logic based on mode
+    if mode == 'remove':
+        # Add logic to remove silent parts
+        processed_video_path = video_path  # Replace with actual processed path
+    elif mode == 'split':
+        # Add logic to split video into parts
+        processed_video_path = video_path  # Replace with actual processed path
+    else:
+        return jsonify({'error': 'Invalid mode provided'}), 400
 
-    base_url = request.host_url.replace("http://", "https://").rstrip('/')
+    base_url = request.host_url.rstrip('/')
 
     return jsonify({
         "original_url": f"{base_url}/uploads/{os.path.basename(video_path)}",

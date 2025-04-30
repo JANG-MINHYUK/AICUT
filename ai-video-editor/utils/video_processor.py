@@ -2,6 +2,7 @@ import numpy as np
 import moviepy.editor as mp
 from scipy.io import wavfile
 import os
+import subprocess
 
 def detect_silence(audio_data, threshold=0.01, min_silence_duration=0.5):
     """오디오 데이터에서 무음 구간을 감지합니다."""
@@ -108,4 +109,16 @@ def process_video(video_path, mode='remove'):
     output_path = os.path.splitext(video_path)[0] + '_processed.mp4'
     processed_video.write_videofile(output_path)
     
-    return output_path 
+    return output_path
+
+def convert_to_h264(input_path, output_path):
+    subprocess.run([
+        "ffmpeg",
+        "-i", input_path,
+        "-c:v", "libx264",
+        "-preset", "fast",
+        "-crf", "23",
+        "-c:a", "aac",
+        "-strict", "experimental",
+        output_path
+    ])
