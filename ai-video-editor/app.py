@@ -63,10 +63,12 @@ def upload_file():
             processed_filename = os.path.basename(processed_video)
             subtitles_filename = os.path.basename(subtitles_path)
 
+            base_url = request.url_root.rstrip('/')
+
             return jsonify({
                 'message': '파일 처리 완료',
-                'videoUrl': f'http://localhost:5000/processed/{processed_filename}',
-                'subtitlesUrl': f'http://localhost:5000/subtitles/{subtitles_filename}',
+                'videoUrl': f'{base_url}/processed/{processed_filename}',
+                'subtitlesUrl': f'{base_url}/subtitles/{subtitles_filename}',
                 'fileName': os.path.splitext(processed_filename)[0]
             })
 
@@ -91,9 +93,11 @@ def process_video():
     # Process the video based on the mode
     processed_video_path = video_path  # Placeholder for actual processing logic
 
+    base_url = request.url_root.rstrip('/')
+
     return jsonify({
-        'original_url': f'http://localhost:5000/uploads/{os.path.basename(video_path)}',
-        'processed_url': f'http://localhost:5000/processed/{os.path.basename(processed_video_path)}'
+        'original_url': f'{base_url}/uploads/{os.path.basename(video_path)}',
+        'processed_url': f'{base_url}/processed/{os.path.basename(processed_video_path)}'
     })
 
 @app.route('/api/status', methods=['GET'])
