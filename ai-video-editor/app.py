@@ -96,8 +96,8 @@ def process_video():
     base_url = request.host_url.replace("http://", "https://").rstrip('/')
 
     return jsonify({
-        'original_url': f'{base_url}/uploads/{os.path.basename(video_path)}',
-        'processed_url': f'{base_url}/processed/{os.path.basename(processed_video_path)}'
+        "original_url": f"{base_url}/uploads/{os.path.basename(video_path)}",
+        "processed_url": f"{base_url}/processed/{os.path.basename(processed_video_path)}",
     })
 
 @app.route('/api/status', methods=['GET'])
