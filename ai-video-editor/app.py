@@ -6,6 +6,7 @@ from werkzeug.utils import secure_filename
 
 from utils.whisper_transcriber import transcribe_audio
 from utils.background_remover import BackgroundRemover
+from utils.silence_editor import remove_silence, split_on_silence, zip_segments
 
 UPLOAD_FOLDER = 'uploads'
 AUDIO_FOLDER = os.path.join(UPLOAD_FOLDER, 'audio')
@@ -88,26 +89,46 @@ def process_video():
     video = request.files['video']
     mode = request.form.get('mode', 'remove')
 
-    # Save the uploaded video
-    video_path = os.path.join(app.config['UPLOAD_FOLDER'], secure_filename(video.filename))
+    filename = secure_filename(video.filename)
+    video_path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
     video.save(video_path)
-
-    # Placeholder for actual processing logic based on mode
-    if mode == 'remove':
-        # Add logic to remove silent parts
-        processed_video_path = video_path  # Replace with actual processed path
-    elif mode == 'split':
-        # Add logic to split video into parts
-        processed_video_path = video_path  # Replace with actual processed path
-    else:
-        return jsonify({'error': 'Invalid mode provided'}), 400
 
     base_url = request.host_url.rstrip('/')
 
-    return jsonify({
-        "original_url": f"{base_url}/uploads/{os.path.basename(video_path)}",
-        "processed_url": f"{base_url}/processed/{os.path.basename(processed_video_path)}",
-    })
+    if mode == 'remove':
+        output_path = os.path.join(app.config['PROCESSED_FOLDER'], f"removed_{filename}")
+        remove_silence(video_path, output_path)
+        return jsonify({
+            "original_url": f"{base_url}/uploads/{filename}",
+            "processed_url": f"{base_url}/processed/removed_{filename}",
+        })
+
+    elif mode == 'split':
+        output_dir = os.path.join(app.config['PROCESSED_FOLDER'], f"split_{os.path.splitext(filename)[0]}")
+        segments = split_on_silence(video_path, output_dir)
+
+        if not segments:
+            return jsonify({
+                "original_url": f"{base_url}/uploads/{filename}",
+                "segments": [],
+                "zip_url": None
+            })
+
+        # ZIP으로 묶기
+        zip_path = f"{output_dir}.zip"
+        zip_segments(output_dir, zip_path)
+
+        segment_urls = [f"{base_url}/processed/{os.path.basename(p)}" for p in segments]
+        zip_url = f"{base_url}/processed/{os.path.basename(zip_path)}"
+
+        return jsonify({
+            "original_url": f"{base_url}/uploads/{filename}",
+            "segments": segment_urls,
+            "zip_url": zip_url
+        })
+
+    else:
+        return jsonify({'error': 'Invalid mode provided'}), 400
 
 @app.route('/api/status', methods=['GET'])
 def api_status():
