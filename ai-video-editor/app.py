@@ -63,7 +63,7 @@ def upload_file():
             processed_filename = os.path.basename(processed_video)
             subtitles_filename = os.path.basename(subtitles_path)
 
-            base_url = request.url_root.rstrip('/')
+            base_url = request.host_url.replace("http://", "https://").rstrip('/')
 
             return jsonify({
                 'message': '파일 처리 완료',
@@ -93,7 +93,7 @@ def process_video():
     # Process the video based on the mode
     processed_video_path = video_path  # Placeholder for actual processing logic
 
-    base_url = request.url_root.rstrip('/')
+    base_url = request.host_url.replace("http://", "https://").rstrip('/')
 
     return jsonify({
         'original_url': f'{base_url}/uploads/{os.path.basename(video_path)}',
