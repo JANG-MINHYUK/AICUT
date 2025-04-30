@@ -1,40 +1,31 @@
-from flask import Flask, request, jsonify, send_from_directory
+from flask import Flask, request, jsonify
 from flask_cors import CORS
 import os
-from werkzeug.utils import secure_filename
-from utils.whisper_transcriber import transcribe_audio
-from utils.video_processor import process_video
-from utils.background_remover import remove_background
 import time
+from werkzeug.utils import secure_filename
+
+from utils.whisper_transcriber import transcribe_audio
+from utils.background_remover import BackgroundRemover
+
+UPLOAD_FOLDER = 'uploads'
+AUDIO_FOLDER = os.path.join(UPLOAD_FOLDER, 'audio')
+PROCESSED_FOLDER = os.path.join(UPLOAD_FOLDER, 'processed')
+SUBTITLES_FOLDER = os.path.join(UPLOAD_FOLDER, 'subtitles')
 
 app = Flask(__name__)
-CORS(app)
 
-# 업로드된 파일을 저장할 디렉토리
-UPLOAD_FOLDER = 'uploads'
-if not os.path.exists(UPLOAD_FOLDER):
-    os.makedirs(UPLOAD_FOLDER)
-
+# 설정은 app 객체 생성 후에 진행해야 합니다
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
-app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024  # 16MB 제한
+app.config['AUDIO_FOLDER'] = AUDIO_FOLDER
+app.config['PROCESSED_FOLDER'] = PROCESSED_FOLDER
+app.config['SUBTITLES_FOLDER'] = SUBTITLES_FOLDER
 
-# === [1] 결과 파일 저장 폴더 자동 생성 ===
-PROCESSED_FOLDER = 'processed'
-SUBTITLES_FOLDER = 'subtitles'
+CORS(app, resources={r"/*": {"origins": "*"}})  # Allow requests from all origins
 
+# 필요한 폴더 생성
+os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 os.makedirs(PROCESSED_FOLDER, exist_ok=True)
 os.makedirs(SUBTITLES_FOLDER, exist_ok=True)
-
-# === [2] 저장된 파일 서빙 API ===
-@app.route('/processed/<filename>')
-def serve_processed_file(filename):
-    return send_from_directory(PROCESSED_FOLDER, filename)
-
-@app.route('/subtitles/<filename>')
-def serve_subtitle_file(filename):
-    return send_from_directory(SUBTITLES_FOLDER, filename)
-
-ALLOWED_EXTENSIONS = {'mp4', 'avi', 'mov', 'mkv'}
 
 def allowed_file(filename):
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
@@ -42,46 +33,72 @@ def allowed_file(filename):
 @app.route('/api/upload', methods=['POST'])
 def upload_file():
     if 'file' not in request.files:
-        return jsonify({'error': 'No file part'}), 400
-    
+        return jsonify({'error': '파일이 요청에 없습니다.'}), 400
+
     file = request.files['file']
     if file.filename == '':
-        return jsonify({'error': 'No selected file'}), 400
-    
+        return jsonify({'error': '파일이 선택되지 않았습니다.'}), 400
+
     if file and allowed_file(file.filename):
-        # 고유한 파일명 생성 (타임스탬프 + 원본 파일명)
         timestamp = int(time.time())
         original_filename = secure_filename(file.filename)
         base_name = os.path.splitext(original_filename)[0]
         unique_filename = f"{base_name}_{timestamp}"
         
-        # 원본 파일 저장
-        original_path = os.path.join(app.config['UPLOAD_FOLDER'], f"{unique_filename}{os.path.splitext(original_filename)[1]}")
-        file.save(original_path)
-        
-        # 비디오 처리 시작
+        save_path = os.path.join(app.config['UPLOAD_FOLDER'], f"{unique_filename}{os.path.splitext(original_filename)[1]}")
+        file.save(save_path)
+
         try:
-            # 무음 구간 자동 컷
-            processed_video = process_video(original_path)
-            
-            # 자막 생성
-            subtitles = transcribe_audio(processed_video)
-            
-            # 배경 제거 (선택적)
-            if request.form.get('remove_background') == 'true':
-                processed_video = remove_background(processed_video)
-            
+            processed_video = save_path  # 원본 그대로 사용
+
+            # Whisper로 자막 생성
+            subtitles_path = transcribe_audio(processed_video)
+
+            # remove_background 옵션 확인
+            remove_bg = request.form.get('remove_background') == 'true'
+            if remove_bg:
+                remover = BackgroundRemover()
+                processed_video = remover.remove_background(processed_video)
+
+            processed_filename = os.path.basename(processed_video)
+            subtitles_filename = os.path.basename(subtitles_path)
+
             return jsonify({
-                'message': 'File processed successfully',
-                'videoUrl': f'/processed/{unique_filename}.mp4',
-                'subtitlesUrl': f'/subtitles/{unique_filename}.srt',
-                'fileName': unique_filename
+                'message': '파일 처리 완료',
+                'videoUrl': f'http://localhost:5000/processed/{processed_filename}',
+                'subtitlesUrl': f'http://localhost:5000/subtitles/{subtitles_filename}',
+                'fileName': os.path.splitext(processed_filename)[0]
             })
-            
+
         except Exception as e:
-            return jsonify({'error': str(e)}), 500
-    
-    return jsonify({'error': 'Invalid file type'}), 400
+            print(f"Error processing video: {e}")
+            return jsonify({'error': '서버 처리 중 오류 발생'}), 500
+
+    return jsonify({'error': '허용되지 않는 파일 형식입니다.'}), 400
+
+@app.route('/process', methods=['POST'])
+def process_video():
+    if 'video' not in request.files:
+        return jsonify({'error': 'No video file provided'}), 400
+
+    video = request.files['video']
+    mode = request.form.get('mode', 'remove')
+
+    # Save the uploaded video
+    video_path = os.path.join(app.config['UPLOAD_FOLDER'], secure_filename(video.filename))
+    video.save(video_path)
+
+    # Process the video based on the mode
+    processed_video_path = video_path  # Placeholder for actual processing logic
+
+    return jsonify({
+        'original_url': f'http://localhost:5000/uploads/{os.path.basename(video_path)}',
+        'processed_url': f'http://localhost:5000/processed/{os.path.basename(processed_video_path)}'
+    })
+
+@app.route('/api/status', methods=['GET'])
+def api_status():
+    return jsonify({"status": "Server is running", "timestamp": time.time()})
 
 if __name__ == '__main__':
-    app.run(debug=True, port=5000) 
+    app.run(debug=True)
