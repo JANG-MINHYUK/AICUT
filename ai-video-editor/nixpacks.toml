@@ -2,16 +2,16 @@
 language = "python"
 
 [phases.setup]
-nixpkgs = [
+nixPkgs = [
+  "ffmpeg",
   "libGL",
-  "libglib",
   "libGLU",
   "libxext",
   "libxrender",
   "libsm",
   "zlib",
-  "libstdcxx5",
-  "ffmpeg"
+  "glib",
+  "libstdcxx5"
 ]
 
 [phases.install]
