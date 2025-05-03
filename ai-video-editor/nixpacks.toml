@@ -2,10 +2,20 @@
 language = "python"
 
 [phases.setup]
-nixPkgs = ["ffmpeg", "libGL", "zlib", "glib", "libstdcxx5"]
+nixPkgs = [
+  "ffmpeg",
+  "libGL",           # GUI 없는 OpenCV에 필요
+  "libGLU",          # 종속성 (일부 시스템은 이것도 요구)
+  "libxext",         # 확장
+  "libxrender",      # 렌더링
+  "libsm",           # 세션 매니저
+  "zlib",
+  "glib",
+  "libstdcxx5"
+]
 
 [phases.install]
 cmd = "pip install --upgrade pip && pip install -r requirements.txt"
 
 [start]
-cmd = "gunicorn app:app"
+cmd = "gunicorn app:app --bind 0.0.0.0:$PORT"
