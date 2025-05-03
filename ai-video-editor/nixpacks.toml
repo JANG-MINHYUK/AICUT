@@ -1,11 +1,11 @@
+[nixpacks]
+language = "python"
+
 [phases.setup]
-nixpkgs = ["libGL", "libglib"]
+nixPkgs = ["ffmpeg", "libGL", "zlib", "glib", "libstdcxx5"]
 
 [phases.install]
-cmds = ["pip install --upgrade pip", "pip install -r requirements.txt"]
+cmd = "pip install --upgrade pip && pip install -r requirements.txt"
 
 [start]
-cmd = "gunicorn app:app --bind 0.0.0.0:$PORT"
-
-[packages]
-ffmpeg = "*"
+cmd = "gunicorn app:app"
